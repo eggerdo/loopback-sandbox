@@ -67,7 +67,7 @@ Note: In this example I use the memory db. But the same applies for mysql or mon
 
     In this case, the datasource is accessed to check if the object with this id exists, but no beforeRemote hook has been triggered, and because the check for id fails, no beforeRemote hook is triggered at all.
 
-3. Showing error case, using PUT /Tests{id} to update, but first adding an object with the given id using PUT /Tests
+3. Showing error case, using PUT /Tests{id} to update, but first adding an object with the given id using POST /Tests
 
     1. `curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" -d "{\"id\": 1}" "http://0.0.0.0:3000/api/Tests"`
 
