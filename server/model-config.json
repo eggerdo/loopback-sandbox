@@ -32,8 +32,8 @@
     "dataSource": "db",
     "public": false
   },
-  "Test": {
-    "dataSource": "db",
+  "CoffeeShop": {
+    "dataSource": "mysqlDs",
     "public": true
   }
 }
