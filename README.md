@@ -145,3 +145,79 @@ Note: In this example I use the memory db. But the same applies for mysql or mon
         	model.getDataSource
         	model.getDataSource
         	model.afterRemote: updateAttributes
+
+4. I updated the code and added the access hook with observe('access') on the Test model. And I added the code to update the datasource based on the user (the remote context with the access token is injected in `server/boot/context_injection.js`). Moreover, the getDataSource now does not return the default data source anymore, but returns an undefined if the datasource was not updated previously based on the current user. But it still does not work, the access hook is not executed before the datasource is accessed. So there is no way to update the datasource in the case of the `PUT /Tests{id}` remote.
+
+    1. `curl -X PUT --header "Content-Type: application/json" --header "Accept: application/json" -d "{\"id\": 1}" "http://0.0.0.0:3000/api/Tests/1"`
+
+    Console Output:
+
+        model.getDataSource: undefined
+
+    Explorer Response Body:
+
+        {
+          "error": {
+            "name": "TypeError",
+            "status": 500,
+            "message": "Cannot read property 'ready' of undefined",
+            "stack": "TypeError: Cannot read property 'ready' of undefined\n    at stillConnecting (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/lib/dao.js:409:22)\n    at Function.findById (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/lib/dao.js:900:27)\n    at Function.ModelCtor.sharedCtor (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback/lib/model.js:160:19)\n    at SharedMethod.invoke (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/strong-remoting/lib/shared-method.js:248:25)\n    at HttpContext.invoke (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/strong-remoting/lib/http-context.js:382:12)\n    at restPrototypeMethodHandler (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/strong-remoting/lib/rest-adapter.js:427:9)\n    at Layer.handle [as handle_request] (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/express/lib/router/layer.js:95:5)\n    at next (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/express/lib/router/route.js:131:13)\n    at Route.dispatch (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/express/lib/router/route.js:112:3)\n    at Layer.handle [as handle_request] (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/express/lib/router/layer.js:95:5)"
+          }
+        }
+
+    Explorer Response Code
+
+        500
+
+    2. `curl -X GET --header "Accept: application/json" "http://0.0.0.0:3000/api/Tests"`
+
+    Console Output:
+
+        model.beforeRemote: find
+        inject
+        attach default
+        model.getDataSource: db
+        model.getDataSource: db
+        model.getDataSource: db
+        model.access: undefined
+        model.afterRemote: find
+
+    Explorer Response Body:
+
+        []
+
+    Explorer Response Code
+
+        200
+
+    3. `curl -X PUT --header "Content-Type: application/json" --header "Accept: application/json" -d "{\"id\": 1}" "http://0.0.0.0:3000/api/Tests/1"`
+
+    Console Output:
+
+        model.getDataSource: db
+        model.getDataSource: db
+        model.getDataSource: db
+        model.getDataSource: db
+        model.getDataSource: db
+        model.access: undefined
+
+    Explorer Response Body:
+
+        {
+          "error": {
+            "name": "Error",
+            "status": 404,
+            "message": "could not find a model with id 1",
+            "statusCode": 404,
+            "code": "MODEL_NOT_FOUND",
+            "stack": "Error: could not find a model with id 1\n    at /data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback/lib/model.js:166:19\n    at /data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/lib/dao.js:1629:62\n    at /data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/lib/dao.js:1561:9\n    at Object.async.each (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/node_modules/async/lib/async.js:153:20)\n    at allCb (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/lib/dao.js:1497:13)\n    at /data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/loopback-datasource-juggler/lib/connectors/memory.js:435:7\n    at /data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/async-listener/glue.js:188:31\n    at doNTCallback0 (node.js:428:9)\n    at process._tickDomainCallback (node.js:398:13)\n    at process.<anonymous> (/data/Projects/dobots/CloudAPI/examples/loopback-sandbox/node_modules/async-listener/index.js:19:15)"
+          }
+        }
+
+    Explorer Response Code
+
+        404
+
+    Note: Because in step 4.2 I called the `GET /Tests`, the datasource was updated. So this time that I exeucte the
+    `PUT /Tests/{id}, it uses the previously attached data source and accesses that datasource BEFORE the access hook is triggered.
+    And aside from this problem, the access hook doesn't have the remote context injected anyway!
